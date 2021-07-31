@@ -1,7 +1,7 @@
-local ped = 0x9fd4292d 
-local playerCoords = GetEntityCoords(PlayerPedId())
-local isPlayerOnMission = false
-local spawnLocations = 
+ped = 0x9fd4292d 
+playerCoords = GetEntityCoords(PlayerPedId())
+isPlayerOnMission = false
+spawnLocations = 
 {
     [1] = {x = 985.3576, y = 188.0025, z = 80.41727},
     [2] = {x = 815.109, y = -86.7378, z = 80.20029},
@@ -53,26 +53,67 @@ function toggleMission()
         if IsControlJustPressed(1, 38) then -- E
             isPlayerOnMission = true
             TriggerEvent("missiontext", "I need you to kill someone. He is ~r~marked~w~ on the GPS. Stay safe.", 2000)
-            local enemyCoords = getRandomLocation(spawnLocations)
-            local enemy = CreatePed(4, ped, enemyCoords.x, enemyCoords.y, enemyCoords.z, 0, false, true)
-            local blip = AddBlipForEntity(enemy)
+            enemyCoords = getRandomLocation(spawnLocations)
+            enemy = CreatePed(4, ped, enemyCoords.x, enemyCoords.y, enemyCoords.z, 0, false, true)
+            blip = AddBlipForEntity(enemy)
             SetPedCombatAbility(enemy, 100)
+            Wait(2000)
+            countdown()
 
             while isPlayerOnMission do
                 Citizen.Wait(0)
-                local enemyHealth = GetEntityHealth(enemy)
+                enemyHealth = GetEntityHealth(enemy)
+                playerHealth = GetEntityHealth(PlayerPedId())
                 if enemyHealth == 0 then
-                    TriggerEvent("missiontext", "Mission was ~g~successful~w~.", 2000)
-                    RemoveBlip(blip)
-                    DeleteEntity(friendly)
-                    Citizen.Wait(10000)
-                    DeleteEntity(enemy)
-                    isPlayerOnMission = false
+                    missionSucceed()
+                end
+                if playerHealth == 0 then
+                    missionFailed()
                 end
             end
         end
     end
 end
+
+function missionSucceed()
+    isPlayerOnMission = false
+    Citizen.Wait(1000)
+    TriggerEvent("missiontext", "Mission was ~g~successful~w~.", 2000)
+    RemoveBlip(blip)
+    DeleteEntity(friendly)
+    Citizen.Wait(10000)
+    DeleteEntity(enemy)
+end
+
+function missionFailed()
+    isPlayerOnMission = false
+    Citizen.Wait(1000)
+    TriggerEvent("missiontext", "Mission was ~r~Failed~w~. Try Again.", 2000)
+    RemoveBlip(blip)
+    DeleteEntity(friendly)
+    Citizen.Wait(10000)
+    DeleteEntity(enemy)
+end
+
+function countdown()
+    gametime = GetGameTimer()
+    allowedTime = 300
+    displayTime = allowedTime 
+    Citizen.CreateThread(function()
+        while isPlayerOnMission do
+            Citizen.Wait(0)
+            if displayTime > 0 then
+                 timeDiff = GetGameTimer() - gametime
+                displayTime = math.floor(allowedTime - (timeDiff/1000))
+                TriggerEvent("missiontext", "Time remaining: " .. displayTime .. " seconds", 1000)
+            else
+                Citizen.Wait(1000)
+                missionFailed()
+            end
+        end
+    end)    
+end
+
 
 
 
